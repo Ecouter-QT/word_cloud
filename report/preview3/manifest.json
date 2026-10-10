@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "backend": "native",
+  "rasterEngine": "libreoffice",
+  "source": "saved",
+  "inputPath": "D:\\AI\\project\\word_cloud\\项目三主题词云图设计_对比分析报告.docx",
+  "sourceSha256": "aa35473208ce8e37afd6fc40f816f659f14b122329466490cfab7f39d6b87509",
+  "dpi": 100,
+  "pageCount": 11,
+  "images": [
+    {
+      "index": 1,
+      "page": 1,
+      "path": "D:\\AI\\project\\word_cloud\\report\\preview3\\page-0001.png",
+      "width": 827,
+      "height": 1170,
+      "rectangle": {
+        "x": 0,
+        "y": 0,
+        "width": 793.7333333333333,
+        "height": 1122.5333333333333
+      },
+      "byteLength": 132497
+    },
+    {
+      "index": 2,
+      "page": 2,
+      "path": "D:\\AI\\project\\word_cloud\\report\\preview3\\page-0002.png",
+      "width": 827,
+      "height": 1170,
+      "rectangle": {
+        "x": 0,
+        "y": 0,
+        "width": 793.7333333333333,
+        "height": 1122.5333333333333
+      },
+      "byteLength": 162061
+    },
+    {
+      "index": 3,
+      "page": 3,
+      "path": "D:\\AI\\project\\word_cloud\\report\\preview3\\page-0003.png",
+      "width": 827,
+      "height": 1170,
+      "rectangle": {
+        "x": 0,
+        "y": 0,
+        "width": 793.7333333333333,
+        "height": 1122.5333333333333
+      },
+      "byteLength": 115052
+    },
+    {
+      "index": 4,
+      "page": 5,
+      "path": "D:\\AI\\project\\word_cloud\\report\\preview3\\page-0004.png",
+      "width": 827,
+      "height": 1170,
+      "rectangle": {
+        "x": 0,
+        "y": 0,
+        "width": 793.7333333333333,
+        "height": 1122.5333333333333
+      },
+      "byteLength": 132853
+    },
+    {
+      "index": 5,
+      "page": 7,
+      "path": "D:\\AI\\project\\word_cloud\\report\\preview3\\page-0005.png",
+      "width": 827,
+      "height": 1170,
+      "rectangle": {
+        "x": 0,
+        "y": 0,
+        "width": 793.7333333333333,
+        "height": 1122.5333333333333
+      },
+      "byteLength": 212805
+    },
+    {
+      "index": 6,
+      "page": 8,
+      "path": "D:\\AI\\project\\word_cloud\\report\\preview3\\page-0006.png",
+      "width": 827,
+      "height": 1170,
+      "rectangle": {
+        "x": 0,
+        "y": 0,
+        "width": 793.7333333333333,
+        "height": 1122.5333333333333
+      },
+      "byteLength": 273715
+    },
+    {
+      "index": 7,
+      "page": 10,
+      "path": "D:\\AI\\project\\word_cloud\\report\\preview3\\page-0007.png",
+      "width": 827,
+      "height": 1170,
+      "rectangle": {
+        "x": 0,
+        "y": 0,
+        "width": 793.7333333333333,
+        "height": 1122.5333333333333
+      },
+      "byteLength": 183117
+    }
+  ],
+  "missingFonts": [
+    "Courier"
+  ]
+}

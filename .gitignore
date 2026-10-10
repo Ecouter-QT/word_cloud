@@ -1,0 +1,24 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# ---- IDE / Editor ----
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# ---- OS ----
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- Logs / temp ----
+*.log
+*.tmp

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>主题词云图生成系统 · 中文分词对比实验</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="boot" class="boot">
+  <div class="boot-inner">
+    <div class="boot-logo">词</div>
+    <h1>主题词云图生成系统</h1>
+    <p class="boot-sub">上传文章 → 自动分词 + 调优对比 → 一键生成词云图</p>
+    <div class="boot-bar"><span id="bootBar"></span></div>
+    <p class="boot-status" id="bootStatus">正在加载 jieba 词典（349,046 词，约 6 MB）…</p>
+    <p class="boot-tip">全部计算在浏览器本地完成，文章不会上传到任何服务器</p>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">词</span>
+    <div>
+      <strong>主题词云图生成系统</strong>
+      <small>jieba × 自建分词工具 · 调优对比实验</small>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <span class="chip" id="chipDict">词典加载中…</span>
+    <button class="btn" id="btnSample">载入示例语料</button>
+    <button class="btn" id="btnReport" disabled>导出实验报告</button>
+    <button class="btn" id="btnDownloadPng" disabled>下载词云 PNG</button>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- ============================ 左侧控制区 ============================ -->
+  <aside class="panel controls">
+
+    <section class="card">
+      <h2><span class="step">1</span>上传文章</h2>
+      <div class="drop" id="drop">
+        <input type="file" id="fileInput" multiple accept=".txt,.md,.text,.html,.htm,.csv,.log,.docx" hidden>
+        <div class="drop-icon">⬆</div>
+        <p><strong>点击选择</strong> 或把文件拖到这里</p>
+        <p class="hint">支持 .txt / .md / .html / .csv 等纯文本，可多选合并</p>
+      </div>
+      <ul class="filelist" id="fileList"></ul>
+      <label class="field">
+        <span>或直接粘贴文章内容</span>
+        <textarea id="rawText" rows="7" placeholder="把文章粘贴到这里，例如新闻报道、散文、论文……（建议 ≥1000 字）"></textarea>
+      </label>
+      <div class="row-between">
+        <span class="hint" id="textStat">未输入内容</span>
+        <button class="btn tiny ghost" id="btnClear">清空</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">2</span>语料预处理</h2>
+      <label class="switch"><input type="checkbox" id="optRemoveHtml" checked><span>去除 HTML 标签 / 实体 / URL</span></label>
+      <label class="switch"><input type="checkbox" id="optKeepPunct" checked><span>保留标点（关闭则标点全部剔除）</span></label>
+      <label class="switch"><input type="checkbox" id="optTagFilter"><span>按词性过滤虚词（助词/介词/连词…）</span></label>
+      <div class="grid2">
+        <label class="field"><span>最短词长</span><input type="number" id="optMinLen" value="2" min="1" max="6"></label>
+        <label class="field"><span>最长词长</span><input type="number" id="optMaxLen" value="12" min="2" max="30"></label>
+      </div>
+      <label class="field">
+        <span>停用词表 <em id="stopStat" class="hint"></em></span>
+        <textarea id="stopwords" rows="4" placeholder="每行一个停用词，可留空使用内置表"></textarea>
+      </label>
+      <label class="field">
+        <span>停用词表文件</span>
+        <input type="file" id="stopFile" accept=".txt">
+      </label>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">3</span>jieba 分词与调优</h2>
+      <div class="grid2">
+        <label class="field">
+          <span>切分模式</span>
+          <select id="optJiebaMode">
+            <option value="exact" selected>精确模式 lcut()</option>
+            <option value="full">全模式 cut_all=True</option>
+            <option value="search">搜索引擎模式 lcut_for_search()</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>HMM 新词发现</span>
+          <select id="optJiebaHmm">
+            <option value="1" selected>开启（默认）</option>
+            <option value="0">关闭 HMM=False</option>
+          </select>
+        </label>
+      </div>
+      <label class="field">
+        <span>自定义词典 user_dict.txt <em class="hint">每行：词 [词频] [词性]</em></span>
+        <textarea id="userDict" rows="5" placeholder="深度学习 2000 n&#10;自然语言处理 5000 nz&#10;大语言模型 3000 n"></textarea>
+      </label>
+      <label class="field">
+        <span>动态加词 add_word <em class="hint">每行：词 [词频] [词性]</em></span>
+        <textarea id="addWords" rows="3" placeholder="人工智能 3000 n"></textarea>
+      </label>
+      <label class="field">
+        <span>调整词频 suggest_freq <em class="hint">每行一个词；前缀 ! 表示调低（阻止成词）</em></span>
+        <textarea id="suggestFreq" rows="3" placeholder="中将&#10;!人工智能"></textarea>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">4</span>自建分词工具调优</h2>
+      <div class="grid2">
+        <label class="field">
+          <span>匹配策略</span>
+          <select id="optSelfStrategy">
+            <option value="fmm" selected>正向最大匹配 FMM</option>
+            <option value="bmm">逆向最大匹配 RMM</option>
+            <option value="bidir">双向最大匹配</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>最大词长 max_len（默认）</span>
+          <input type="number" id="optSelfMaxLen" value="6" min="2" max="16">
+        </label>
+      </div>
+      <div class="grid2">
+        <label class="field">
+          <span>最大词长（调优后）</span>
+          <input type="number" id="optSelfMaxLenTuned" value="9" min="2" max="16">
+        </label>
+        <label class="field">
+          <span>未登录词回退</span>
+          <select id="optSelfHmm">
+            <option value="1" selected>加入 HMM 回退</option>
+            <option value="0">不启用</option>
+          </select>
+        </label>
+      </div>
+      <label class="switch"><input type="checkbox" id="optSelfExtend" checked><span>用 jieba 结果反向扩充词表</span></label>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">5</span>词云设计</h2>
+      <div class="grid2">
+        <label class="field">
+          <span>形状蒙版</span>
+          <select id="optShape">
+            <option value="ellipse" selected>椭圆</option>
+            <option value="circle">正圆</option>
+            <option value="heart">心形</option>
+            <option value="star">五角星</option>
+            <option value="cloud">云朵</option>
+            <option value="diamond">菱形</option>
+            <option value="rect">矩形（铺满）</option>
+            <option value="text">文字形状（自定义）</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>形状用字</span>
+          <input type="text" id="optShapeText" value="词" maxlength="2">
+        </label>
+      </div>
+      <div class="grid2">
+        <label class="field">
+          <span>配色方案</span>
+          <select id="optPalette"></select>
+        </label>
+        <label class="field">
+          <span>词频映射</span>
+          <select id="optMapping">
+            <option value="sqrt" selected>平方根（视觉均衡）</option>
+            <option value="linear">线性（差距最明显）</option>
+            <option value="log">对数（压制超高频词）</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid2">
+        <label class="field">
+          <span>中文字体</span>
+          <select id="optFont">
+            <option value="Microsoft YaHei" selected>微软雅黑</option>
+            <option value="SimHei">黑体 SimHei</option>
+            <option value="KaiTi">楷体 KaiTi</option>
+            <option value="SimSun">宋体 SimSun</option>
+            <option value="DengXian">等线 DengXian</option>
+            <option value="STZhongsong">华文中宋</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>字体粗细</span>
+          <select id="optWeight">
+            <option value="bold" selected>粗体</option>
+            <option value="normal">常规</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid3">
+        <label class="field"><span>最多词数</span><input type="number" id="optMaxWords" value="150" min="10" max="600" step="10"></label>
+        <label class="field"><span>最小字号</span><input type="number" id="optMinSize" value="12" min="6" max="40"></label>
+        <label class="field"><span>最大字号</span><input type="number" id="optMaxSize" value="110" min="20" max="240"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>画布宽</span><input type="number" id="optWidth" value="900" min="300" max="1600" step="50"></label>
+        <label class="field"><span>画布高</span><input type="number" id="optHeight" value="620" min="300" max="1200" step="50"></label>
+      </div>
+      <div class="grid2">
+        <label class="field">
+          <span>竖排词比例</span>
+          <select id="optRotate">
+            <option value="0" selected>不竖排</option>
+            <option value="0.15">15%</option>
+            <option value="0.3">30%</option>
+            <option value="0.5">50%</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>背景色</span>
+          <input type="color" id="optBg" value="#ffffff">
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">6</span>人工标注金标准（可选）</h2>
+      <label class="field">
+        <span>每行一句，用 <code>/</code> 或空格分隔词</span>
+        <textarea id="goldText" rows="5" placeholder="我/来到/北京/清华大学&#10;自然语言处理/课程/很/有趣"></textarea>
+      </label>
+      <p class="hint">留空时系统会自动生成"多分词器投票"银标准用于横向对比。</p>
+    </section>
+
+    <div class="run-bar">
+      <button class="btn primary big" id="btnRun">开始分析并生成词云</button>
+      <button class="btn ghost" id="btnRunCloud">仅重绘词云</button>
+    </div>
+  </aside>
+
+  <!-- ============================ 右侧结果区 ============================ -->
+  <section class="panel results">
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="cloud">词云图</button>
+      <button class="tab" data-tab="freq">词频统计</button>
+      <button class="tab" data-tab="compare">分词对比</button>
+      <button class="tab" data-tab="metrics">指标与错误分析</button>
+      <button class="tab" data-tab="tune">调优记录</button>
+      <button class="tab" data-tab="report">实验报告</button>
+    </nav>
+
+    <div class="tabpanes">
+      <!-- 词云 -->
+      <div class="pane active" data-pane="cloud">
+        <div class="card">
+          <div class="cloud-head">
+            <h2>词云图</h2>
+            <div class="cloud-meta" id="cloudMeta">尚未生成</div>
+          </div>
+          <div class="cloud-stage" id="cloudStage">
+            <canvas id="cloud"></canvas>
+            <div class="cloud-tip" id="cloudTip"></div>
+            <div class="cloud-empty" id="cloudEmpty">上传文章后点击「开始分析并生成词云」</div>
+          </div>
+          <div class="legend" id="cloudLegend"></div>
+        </div>
+      </div>
+
+      <!-- 词频 -->
+      <div class="pane" data-pane="freq">
+        <div class="card">
+          <div class="cloud-head">
+            <h2>高频词排行</h2>
+            <div class="cloud-meta" id="freqMeta">—</div>
+          </div>
+          <div class="split">
+            <div class="bar-list" id="barList"></div>
+            <div class="table-wrap"><table class="data-table" id="freqTable"></table></div>
+          </div>
+          <h3>过滤明细</h3>
+          <div class="dropstats" id="dropStats"></div>
+        </div>
+      </div>
+
+      <!-- 分词对比 -->
+      <div class="pane" data-pane="compare">
+        <div class="card">
+          <div class="cloud-head">
+            <h2>分词结果对比</h2>
+            <div class="cloud-meta" id="cmpMeta">—</div>
+          </div>
+          <div class="compare-grid" id="compareGrid">
+            <div class="cmp-col"><h3>jieba（默认）</h3><div class="seg-view" id="segJiebaDefault"></div></div>
+            <div class="cmp-col"><h3>jieba（调优后）</h3><div class="seg-view" id="segJiebaTuned"></div></div>
+            <div class="cmp-col"><h3>自建工具（默认）</h3><div class="seg-view" id="segSelfDefault"></div></div>
+            <div class="cmp-col"><h3>自建工具（调优后）</h3><div class="seg-view" id="segSelfTuned"></div></div>
+          </div>
+          <p class="hint">绿底 = 与"调优后 jieba"一致；黄底 = 与其他结果不一致的切分边界。</p>
+        </div>
+        <div class="card">
+          <h3>jieba 调优前后差异片段</h3>
+          <div class="table-wrap"><table class="data-table" id="diffTable"></table></div>
+        </div>
+        <div class="card">
+          <h3>自建工具调优前后差异片段</h3>
+          <div class="table-wrap"><table class="data-table" id="diffTableSelf"></table></div>
+        </div>
+      </div>
+
+      <!-- 指标 -->
+      <div class="pane" data-pane="metrics">
+        <div class="card">
+          <div class="cloud-head">
+            <h2>定量对比（P / R / F1）</h2>
+            <div class="cloud-meta" id="metricMeta">—</div>
+          </div>
+          <div class="table-wrap"><table class="data-table" id="metricTable"></table></div>
+          <div class="metric-cards" id="metricCards"></div>
+        </div>
+        <div class="card">
+          <h3>错误类型分布</h3>
+          <div class="table-wrap"><table class="data-table" id="errorTable"></table></div>
+        </div>
+        <div class="card">
+          <h3>错误明细（jieba 调优后）</h3>
+          <div class="table-wrap"><table class="data-table" id="errorDetail"></table></div>
+        </div>
+        <div class="card">
+          <h3>词云噪声检查</h3>
+          <div class="dropstats" id="noiseStats"></div>
+        </div>
+      </div>
+
+      <!-- 调优记录 -->
+      <div class="pane" data-pane="tune">
+        <div class="card">
+          <h2>调优操作记录</h2>
+          <div id="tuneLog" class="tunelog"></div>
+        </div>
+        <div class="card">
+          <h3>词典状态</h3>
+          <div class="dropstats" id="dictState"></div>
+        </div>
+      </div>
+
+      <!-- 报告 -->
+      <div class="pane" data-pane="report">
+        <div class="card">
+          <div class="cloud-head">
+            <h2>对比分析报告（自动生成）</h2>
+            <div class="cloud-meta">可直接复制到实验报告，或点右上角「导出实验报告」下载 Markdown</div>
+          </div>
+          <div class="report" id="reportBody"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="loading" id="loading" hidden>
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div id="loadingText">正在分析…</div>
+  </div>
+</div>
+
+<script src="data/stopwords.js"></script>
+<script src="data/sample.js"></script>
+<script src="data/jieba_dict.js"></script>
+<script src="data/jieba_hmm.js"></script>
+<script src="js/dict.js"></script>
+<script src="js/jieba.js"></script>
+<script src="js/segmenters.js"></script>
+<script src="js/metrics.js"></script>
+<script src="js/wordcloud.js"></script>
+<script src="js/pipeline.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
